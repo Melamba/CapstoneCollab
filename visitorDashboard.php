@@ -450,6 +450,14 @@ function success(position) {
         [14.660145552796692, 120.98612882156556]
         ]).addTo(map);
 
+        const OOB = 
+        L.polygon([
+        [14.660790310847363, 120.98545208955804],
+        [14.661470932586278, 120.98731516636899],
+        [14.657402220931582, 120.98726338705264],
+        [14.657431918324873, 120.98548760251096]
+        ]).addTo(map);
+
         const logId = <?= (int)$logId ?>;
 
 const polygons = [
@@ -463,8 +471,11 @@ const polygons = [
     ["Purple Owl Complex", PPOWLBuilding],
     ["Centennial Gymnasium", CGym]
 ];
+const bounds = [
+    ["in-campus", OOB],
+];
 
-let lastBuilding = "";
+
 
 navigator.geolocation.watchPosition(function(pos) {
     const point = turf.point([
@@ -503,6 +514,67 @@ navigator.geolocation.watchPosition(function(pos) {
 }
             }
     });
+});
+ let lastBuilding = ""; 
+
+const watchId = navigator.geolocation.watchPosition(function(pos) {
+    
+
+    const point = turf.point([
+        pos.coords.longitude,
+        pos.coords.latitude
+    ]);
+
+
+    polygons.forEach(function(item) {
+        const buildingName = item[0];
+        const buildingLayer = item[1];
+
+        const polyGeoJSON = buildingLayer.toGeoJSON().geometry;
+
+        if (turf.booleanPointInPolygon(point, polyGeoJSON)) {
+            if (lastBuilding !== buildingName) {
+                lastBuilding = buildingName;
+                alert(buildingName);
+
+                fetch("updateBuilding.php", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: "log_id=" + logId + "&building=" + encodeURIComponent(buildingName)
+                });
+            }
+        }
+    });
+
+
+    let inBounds = false;
+
+    bounds.forEach(function(item) {
+        const boundaryLayer = item[1];
+        const boundGeoJSON = boundaryLayer.toGeoJSON().geometry;
+
+        if (turf.booleanPointInPolygon(point, boundGeoJSON)) {
+            inBounds = true;
+        }
+    });
+
+
+    if (!inBounds) {
+        
+        navigator.geolocation.clearWatch(watchId); 
+        
+        alert("Out of bounds! Ending session.");
+        
+        //pagawa nga ng exit thank you card tas indication na wala na
+        window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"; 
+    }
+
+}, function(err) {
+    console.error("Location tracking failure: ", err);
+}, {
+    enableHighAccuracy: true
 });
     </script>
 </body>
