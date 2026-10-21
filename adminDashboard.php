@@ -175,8 +175,8 @@ $staffCount  = $pdo->query("SELECT COUNT(*) FROM `user` WHERE status = 'active' 
         </div>
         <div class="sectionB">
             <div class="bChild">
-                <button type="button">See all Visitors</button>
-                <button type="button">See all Records</button>
+                <input type="button" onclick="location.href='adminDashboard2.Php';" value = "See all current Visitor"></button>
+                <input type="button" onclick="location.href='adminDashboard3.Php';" value = "See all Records"></button>
             </div>
             <div class="bChildB">
                 <div class="infoCardPar">
