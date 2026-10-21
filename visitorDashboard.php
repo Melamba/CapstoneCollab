@@ -1,5 +1,28 @@
 <?php
 require 'CapstoneSample_db.php';
+if (isset($_GET['action']) && $_GET['action'] === 'ajax_checkout') {
+    header('Content-Type: application/json');
+    $logId = isset($_GET['log_id']) ? (int)$_GET['log_id'] : 0;
+    
+    if ($logId > 0) {
+        try {
+            $stmt = $pdo->prepare(
+                "UPDATE visitor_log 
+                 SET status = 'checked_out', 
+                     date_time_out = NOW() 
+                 WHERE log_id = ?"
+            );
+            $stmt->execute([$logId]);
+            echo json_encode(['success' => true]);
+        } catch (PDOException $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Invalid Log ID']);
+    }
+    exit; 
+}
+
 
 $logId = isset($_GET['log_id']) ? (int)$_GET['log_id'] : 0;
 $info  = null;
@@ -248,6 +271,21 @@ $desc = $buildingDesc[$building] ?? '';
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
     <script>
+        //make cookie https://www.w3schools.com/js/js_cookies.asp
+        function setCookie(cvalue) {
+        const d = new Date();
+        const exdays = 1;
+
+        let rawName = <?php echo json_encode($fullName ?? 'User'); ?>;
+        let cname = encodeURIComponent(rawName).replace(/%/g, '_'); 
+        d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+        let expires = "expires=" + d.toUTCString();
+
+        document.cookie = cname + "=" + encodeURIComponent(cvalue) + ";" + expires + ";path=/;SameSite=Lax";
+        }
+        //
+        setCookie ('Active');
+        //
         const myBuilding = <?= json_encode($building) ?>;
 
         const campusBounds = L.latLngBounds(
@@ -561,16 +599,36 @@ const watchId = navigator.geolocation.watchPosition(function(pos) {
     });
 
 
-    if (!inBounds) {
-        
-        navigator.geolocation.clearWatch(watchId); 
-        
-        alert("Out of bounds! Ending session.");
-        
-        //pagawa nga ng exit thank you card tas indication na wala na
-        window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"; 
+    function isCookieExpired() {
+    let rawName = <?php echo json_encode($fullName ?? 'User'); ?>;
+    let cname = encodeURIComponent(rawName).replace(/%/g, '_') + "=";
+    
+   
+    return !document.cookie.split(';').some(item => item.trim().startsWith(cname));
     }
 
+    
+    if (!inBounds || isCookieExpired()) {
+        navigator.geolocation.clearWatch(watchId); 
+        let rawName = <?php echo json_encode($fullName ?? 'User'); ?>;
+        let cname = encodeURIComponent(rawName).replace(/%/g, '_'); 
+        document.cookie = cname + "=Expired;path=/;SameSite=Lax;max-age=0";
+        const currentFile = window.location.pathname;
+        fetch(`${currentFile}?action=ajax_checkout&log_id=${logId}`)
+            .then(response => response.json())
+            .then(data => console.log("Self-contained update response:", data))
+            .catch(err => console.error("Self-contained update failed:", err))
+            .finally(() => {
+               
+                if (!inBounds) {
+                    alert("Out of bounds! Ending session.");
+                } else {
+                    alert("Session expired! Ending session.");
+                }
+                //palagay login link thx
+                window.location.href = " "; 
+            });
+    }
 }, function(err) {
     console.error("Location tracking failure: ", err);
 }, {
