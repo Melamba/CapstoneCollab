@@ -2,11 +2,11 @@
 require 'CapstoneSample_db.php';
 
 $active = $pdo->query(
-    "SELECT v.firstname, v.lastname, v.contact_number, l.building
+    "SELECT *
      FROM visitor_log vl
      JOIN visitor v  ON v.visitor_id = vl.visitor_id
      LEFT JOIN location l ON l.log_id = vl.log_id
-     ORDER BY vl.date_time_in DESC"
+     ORDER BY vl.date_time_in ASC"
 )->fetchAll();
 
 $activeCount = count($active);
@@ -18,6 +18,7 @@ $last        = $pdo->query(
 )->fetchColumn();
 $lastVisitor = $last ?: 'None yet';
 $staffCount  = $pdo->query("SELECT COUNT(*) FROM `user` WHERE status = 'active' AND role <> 'admin'")->fetchColumn();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,6 +77,8 @@ $staffCount  = $pdo->query("SELECT COUNT(*) FROM `user` WHERE status = 'active' 
         min-height: 100%;
         overflow: scroll;
         max-height: 100vh;
+        min-width: 80vw;
+        
     }
     .sectionB
     {
@@ -154,20 +157,30 @@ $staffCount  = $pdo->query("SELECT COUNT(*) FROM `user` WHERE status = 'active' 
     </div>
     <div class="pagePar">
         <div class="sectionA">
-            <table class="tableActive">
+           <table class="tableActive">
                 <tr>
+                    <th>Visitor ID</th>
                     <th>Visitor Name</th>
                     <th>Contact Number</th>
                     <th>Nearest Location</th>
+                    <th>Visitor Type</th>
+                    <th>Time in</th>
+                    <th>Time out</th>
+                    <th>Status</th>
                 </tr>
-                <?php if (!$active): ?>
-                <tr><td colspan="3">No active visitors</td></tr>
+                    <?php if (!$active): ?>
+                    <tr><td colspan="3">No active visitors</td></tr>
                 <?php endif; ?>
                 <?php foreach ($active as $row): ?>
                 <tr>
+                    <td><?= e($row['visitor_id'] ?? '') ?></td>
                     <td><?= e($row['firstname'] . ' ' . $row['lastname']) ?></td>
                     <td><?= e($row['contact_number']) ?></td>
                     <td><?= e($row['building'] ?? '') ?></td>
+                    <td><?= e($row['visitor_type'] ?? '') ?></td>
+                    <td><?= e($row['date_time_in'] ?? '') ?></td>
+                    <td><?= e($row['date_time_out'] ?? '') ?></td>
+                    <td><?= e($row['status'] ?? '') ?></td>
                 </tr>
                 <?php endforeach; ?>
             </table>
@@ -177,20 +190,12 @@ $staffCount  = $pdo->query("SELECT COUNT(*) FROM `user` WHERE status = 'active' 
                 <input type="button" onclick="location.href='adminDashboard2.Php';" value = "See all current Visitor"></button>
                 <input type="button" onclick="location.href='adminDashboard.Php';" value = "See active Visitor"></button>
             </div>
-            <div class="bChildB">
-                <div class="infoCardPar">
-                    <div class="infoCardChi">
-                        <h3>Active Visitor Count: <?= (int)$activeCount ?></h3>
-                        <h3>Total Visitors Today: <?= (int)$todayCount ?></h3>
-                        <h3>Last Visitor Admitted: <?= e($lastVisitor) ?></h3>
-                        <h3>Monitoring Staff: <?= (int)$staffCount ?></h3>
-                    </div>
-                </div>
-                <div class="infoCardPar">
-                    <div class="infoCardChi">
-                        <h3>Announcement:</h3>
-                        [Message]
-                    </div>
+            <form method="POST" action = "searched.php">
+                <input type = "text" name="search" placeholder = "Search Records">
+                <input type="submit" name="saving" value="Search Records">
+            </form>
+
+            
                 </div>
             </div>
         </div>
