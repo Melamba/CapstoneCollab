@@ -65,6 +65,28 @@ try {
 
     $stmt = $pdo->prepare("INSERT INTO location (log_id, building) VALUES (?, ?)");
     $stmt->execute([$logId, $building]);
+    
+ // new addtion - cookie saving part after the db save the credentials
+    $session_token = bin2hex(random_bytes(32));
+
+    $expiry_timestamp = time() + 86400; 
+    $expires_at = date('Y-m-d H:i:s', $expiry_timestamp);
+
+    $stmtSession = $pdo->prepare("INSERT INTO user_sessions (userLog_id, session_token, expires_at) VALUES (:user_id, :session_token, :expires_at)");
+    $stmtSession->execute([
+        ':user_id' => $logId, 
+        ':session_token' => $session_token,
+        ':expires_at' => $expires_at
+    ]);
+
+    setcookie("auth_token", $session_token, [
+        'expires' => $expiry_timestamp,
+        'path' => '/',
+        'secure' => true,     
+        'httponly' => true,    
+        'samesite' => 'Lax'    
+    ]);
+    // the cookie saving part (para automatically nag-cchange yung status ng visitor) nawala last commit so it is injected here again
 
     $pdo->commit();
     header('Location: visitorDashboard.php?log_id=' . $logId);
